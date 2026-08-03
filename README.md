@@ -8,8 +8,9 @@ Verificare licență PRO pentru aplicațiile Grecia Planner.
 |------|--------|----------------|----------------|
 | **Thassos** | Legacy `users.is_pro` | `POST /internal/grant-pro` fără `island_id` | `GET /check-status?email=` (fără `island`) |
 | **Kassandra** | `license_entitlements` | `POST /internal/grant-pro` cu `island_id=kassandra` | `GET /check-status?email=&island=kassandra` |
+| **Sithonia** | `license_entitlements` | `POST /internal/grant-pro` cu `island_id=sithonia` | `GET /check-status?email=&island=sithonia` |
 
-Kassandra **nu** folosește `is_pro` — cumpărarea Thassos **nu** deblochează Kassandra.
+Kassandra și Sithonia **nu** folosesc `is_pro` — cumpărarea Thassos **nu** deblochează aceste ghiduri.
 
 ## Endpoint
 
@@ -37,15 +38,15 @@ Test Thassos (legacy):
 curl "http://localhost:8000/check-status?email=client@example.com&device_id=abcd12345678"
 ```
 
-Test Kassandra (entitlement):
+Test Kassandra / Sithonia (entitlement):
 
 ```bash
 curl -X POST http://localhost:8000/internal/grant-pro \
   -H "Content-Type: application/json" \
   -H "X-Internal-Secret: YOUR_SECRET" \
-  -d '{"email":"kassandra@example.com","island_id":"kassandra"}'
+  -d '{"email":"sithonia@example.com","island_id":"sithonia"}'
 
-curl "http://localhost:8000/check-status?email=kassandra@example.com&device_id=abcd12345678&island=kassandra"
+curl "http://localhost:8000/check-status?email=sithonia@example.com&device_id=abcd12345678&island=sithonia"
 ```
 
 ## Backfill Kassandra
@@ -63,3 +64,6 @@ python scripts/backfill_kassandra_entitlements.py --emails client@example.com
    SAAS_API_URL=https://api.greciaplanner.ro
    SAAS_INTERNAL_SECRET=același secret ca INTERNAL_API_SECRET
    ```
+
+
+

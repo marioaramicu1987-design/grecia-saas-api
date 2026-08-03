@@ -46,7 +46,7 @@ def check_status(
     """
     Verifică licența și leagă email-ul de un singur dispozitiv.
     - Fără `island` (sau necunoscut): legacy Thassos via users.is_pro
-    - island=kassandra: entitlement dedicat, ignoră is_pro
+    - island=kassandra|sithonia: entitlement dedicat, ignoră is_pro
     """
     entitlement_island = normalize_entitlement_island(island)
     if entitlement_island:
@@ -72,7 +72,8 @@ def internal_grant_pro(
     island = normalize_entitlement_island(payload.island_id)
     email = str(payload.email).strip().lower()
 
-    if island == "kassandra":
+    # Ghiduri cu entitlement separat (Kassandra, Sithonia) — nu deblochează Thassos is_pro
+    if island:
         if grant_island_entitlement(email, island, payload.source_order_id):
             return {"ok": True, "email": email, "island": island, "model": "entitlement"}
         raise HTTPException(status_code=400, detail="Invalid email or island")

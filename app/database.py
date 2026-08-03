@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
-ENTITLEMENT_ISLANDS = frozenset({"kassandra"})
+ENTITLEMENT_ISLANDS = frozenset({"kassandra", "sithonia"})
 
 
 class Base(DeclarativeBase):
