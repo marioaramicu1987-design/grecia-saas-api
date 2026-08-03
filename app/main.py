@@ -34,7 +34,7 @@ def on_startup() -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.1.0"}
+    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.2.0"}
 
 
 @app.get("/check-status")
