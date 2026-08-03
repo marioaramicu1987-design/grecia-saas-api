@@ -14,7 +14,7 @@ from app.database import (
 app = FastAPI(
     title="Grecia Planner SaaS API",
     description="Verificare licență PRO — legacy Thassos (is_pro) și entitlements per ghid.",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
