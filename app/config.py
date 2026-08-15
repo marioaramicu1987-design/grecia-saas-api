@@ -1,5 +1,15 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_database_url(url: str) -> str:
+    """SQLAlchemy 2 nu acceptă schema heroku `postgres://`."""
+    value = (url or "").strip()
+    if not value:
+        return "sqlite:///./saas.db"
+    if value.startswith("postgres://"):
+        return "postgresql://" + value[len("postgres://") :]
+    return value
 
 
 class Settings(BaseSettings):
@@ -10,6 +20,11 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     internal_api_secret: str = ""
     multi_device_test_emails: str = "test@greciaplanner.ro"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_db_url(cls, value: object) -> str:
+        return normalize_database_url(str(value or ""))
 
 
 settings = Settings()

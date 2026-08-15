@@ -14,7 +14,7 @@ from app.database import (
 app = FastAPI(
     title="Grecia Planner SaaS API",
     description="Verificare licență PRO — legacy Thassos (is_pro) și entitlements per ghid.",
-    version="1.2.0",
+    version="1.2.1",
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -29,12 +29,28 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    init_db()
+    import time
+
+    last_error: Exception | None = None
+    for attempt in range(1, 8):
+        try:
+            init_db()
+            return
+        except Exception as exc:  # noqa: BLE001 — logăm și reîncercăm (Neon cold start)
+            last_error = exc
+            wait_s = min(attempt * 2, 12)
+            print(
+                f"[saas-api] init_db failed attempt {attempt}/7: {type(exc).__name__}: {exc}",
+                flush=True,
+            )
+            time.sleep(wait_s)
+    print("[saas-api] FATAL: database unavailable after retries", flush=True)
+    raise RuntimeError(f"Database init failed: {last_error}") from last_error
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.2.0"}
+    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.2.1"}
 
 
 @app.get("/check-status")
@@ -46,7 +62,7 @@ def check_status(
     """
     Verifică licența și leagă email-ul de un singur dispozitiv.
     - Fără `island` (sau necunoscut): legacy Thassos via users.is_pro
-    - island=kassandra|sithonia: entitlement dedicat, ignoră is_pro
+    - island=kassandra|sithonia|lefkada: entitlement dedicat, ignoră is_pro
     """
     entitlement_island = normalize_entitlement_island(island)
     if entitlement_island:

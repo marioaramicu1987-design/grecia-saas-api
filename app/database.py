@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
-ENTITLEMENT_ISLANDS = frozenset({"kassandra", "sithonia"})
+ENTITLEMENT_ISLANDS = frozenset({"kassandra", "sithonia", "lefkada"})
 
 
 class Base(DeclarativeBase):
@@ -47,7 +47,12 @@ class LicenseEntitlement(Base):
 def _engine_kwargs(url: str) -> dict:
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}
-    return {}
+    # Neon / managed Postgres: reconnect după sleep
+    return {
+        "pool_recycle": 280,
+        "pool_size": 2,
+        "max_overflow": 2,
+    }
 
 
 engine = create_engine(settings.database_url, pool_pre_ping=True, **_engine_kwargs(settings.database_url))
@@ -55,9 +60,13 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def init_db() -> None:
+    """Creează tabelele. Aruncă eroarea reală — startup-ul face retry."""
+    dialect = engine.dialect.name
+    print(f"[saas-api] init_db dialect={dialect}", flush=True)
     Base.metadata.create_all(bind=engine)
     _migrate_bound_device_id()
     _migrate_license_entitlements()
+    print("[saas-api] init_db OK", flush=True)
 
 
 def _migrate_bound_device_id() -> None:
