@@ -1,16 +1,15 @@
-services:
+﻿services:
   - type: web
     name: grecia-saas-api
     runtime: python
     plan: free
     region: frankfurt
+    rootDir: saas-api
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: PORT
-        value: 8000
       - key: DATABASE_URL
         sync: false
       - key: INTERNAL_API_SECRET
