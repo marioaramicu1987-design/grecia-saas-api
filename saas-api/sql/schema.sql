@@ -26,3 +26,19 @@ CREATE TABLE IF NOT EXISTS license_entitlements (
 
 CREATE INDEX IF NOT EXISTS idx_license_entitlements_email_island
   ON license_entitlements (email, island_id);
+
+-- Coduri de deblocare (licență complementară: o aplicație, un dispozitiv)
+CREATE TABLE IF NOT EXISTS unlock_codes (
+  id               SERIAL PRIMARY KEY,
+  code             VARCHAR(24)  NOT NULL UNIQUE,
+  island_id        VARCHAR(32)  NOT NULL,
+  note             VARCHAR(255),
+  created_by       VARCHAR(255),
+  bound_device_id  VARCHAR(128),
+  redeemed_at      TIMESTAMPTZ,
+  revoked_at       TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_unlock_codes_island ON unlock_codes (island_id);

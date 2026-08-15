@@ -34,3 +34,14 @@ class GrantProRequest(BaseModel):
     email: EmailStr
     island_id: str | None = None
     source_order_id: str | None = None
+
+
+class CreateUnlockCodeRequest(BaseModel):
+    island_id: str
+    code: str | None = None
+    note: str | None = None
+    created_by: str | None = None
+
+
+class RevokeUnlockCodeRequest(BaseModel):
+    code: str
