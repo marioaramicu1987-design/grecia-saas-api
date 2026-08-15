@@ -19,7 +19,7 @@ from app.database import (
 app = FastAPI(
     title="Grecia Planner SaaS API",
     description="Verificare licență PRO — legacy Thassos (is_pro) și entitlements per ghid.",
-    version="1.3.0",
+    version="1.3.1",
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -55,7 +55,7 @@ def on_startup() -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.0"}
+    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.1"}
 
 
 @app.get("/check-status")
@@ -68,8 +68,9 @@ def check_status(
     """
     Verifică licența și leagă contul de un singur dispozitiv.
     - `code`: licență de deblocare per aplicație (același contract ca emailul plătit)
-    - Fără `island` (sau necunoscut): legacy Thassos via users.is_pro
-    - island=kassandra|sithonia|lefkada: entitlement dedicat, ignoră is_pro
+    - Codul cere `island` valid (thassos|kassandra|sithonia|lefkada); altfel no_license
+    - Fără `island` (sau necunoscut) pe email: legacy Thassos via users.is_pro
+    - island=kassandra|sithonia|lefkada pe email: entitlement dedicat, ignoră is_pro
     """
     unlock = normalize_unlock_code(code) or normalize_unlock_code(email if "@" not in email else "")
     if unlock:

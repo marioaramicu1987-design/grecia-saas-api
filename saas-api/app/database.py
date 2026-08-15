@@ -227,7 +227,7 @@ def normalize_unlock_island(island_id: str | None) -> str | None:
 
 
 def normalize_unlock_code(code: str | None) -> str:
-    return (code or "").strip().upper().replace(" ", "")
+    return (code or "").strip().upper().replace(" ", "").replace("-", "")
 
 
 def is_valid_unlock_code_format(code: str) -> bool:
@@ -422,8 +422,8 @@ def check_unlock_code(
 ) -> tuple[bool, str | None]:
     """Licență de deblocare: o aplicație, un dispozitiv — același contract ca emailul plătit."""
     normalized = normalize_unlock_code(code)
-    island = normalize_unlock_island(island_id) or "thassos"
-    if not is_valid_unlock_code_format(normalized):
+    island = normalize_unlock_island(island_id)
+    if island is None or not is_valid_unlock_code_format(normalized):
         return False, "no_license"
 
     device = normalize_device_id(device_id)
