@@ -69,6 +69,16 @@ class LicenseEntitlement(Base):
     )
 
 
+def _normalize_database_url(url: str) -> str:
+    value = (url or "").strip()
+    if value.startswith("postgres://"):
+        value = "postgresql://" + value[len("postgres://") :]
+    # SQLAlchemy 2.1 tratează postgresql:// ca psycopg 3. Python 3.14 pe Render nu are psycopg2.
+    if value.startswith("postgresql://"):
+        value = "postgresql+psycopg://" + value[len("postgresql://") :]
+    return value
+
+
 def _engine_kwargs(url: str) -> dict:
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}
@@ -80,7 +90,8 @@ def _engine_kwargs(url: str) -> dict:
     }
 
 
-engine = create_engine(settings.database_url, pool_pre_ping=True, **_engine_kwargs(settings.database_url))
+_database_url = _normalize_database_url(settings.database_url)
+engine = create_engine(_database_url, pool_pre_ping=True, **_engine_kwargs(_database_url))
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
