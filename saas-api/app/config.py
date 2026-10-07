@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     port: int = 8000
     cors_origins: str = "*"
     internal_api_secret: str = ""
-    multi_device_test_emails: str = "test@greciaplanner.ro"
+    multi_device_test_emails: str = "reviewer@greciaplanner.ro,test@greciaplanner.ro"
 
     @field_validator("database_url", mode="before")
     @classmethod

@@ -253,8 +253,20 @@ def is_valid_device_id(device_id: str) -> bool:
     return all(ch.isalnum() or ch in "-_" for ch in device_id)
 
 
+# Conturi pentru examinarea Google Play. Nu se leagă de un telefon,
+# altfel al doilea reviewer primește device_mismatch și Play respinge loginul.
+PLAY_REVIEW_EMAILS = frozenset(
+    {
+        "reviewer@greciaplanner.ro",
+        "test@greciaplanner.ro",
+    }
+)
+
+
 def is_multi_device_test_email(email: str) -> bool:
     normalized = normalize_email(email)
+    if normalized in PLAY_REVIEW_EMAILS:
+        return True
     allowed = {
         item.strip().lower()
         for item in settings.multi_device_test_emails.split(",")
