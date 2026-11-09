@@ -6,8 +6,25 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
-ENTITLEMENT_ISLANDS = frozenset({"kassandra", "sithonia", "lefkada"})
-UNLOCK_ISLANDS = frozenset({"thassos", "kassandra", "sithonia", "lefkada"})
+ENTITLEMENT_ISLANDS = frozenset({
+    "kassandra",
+    "sithonia",
+    "lefkada",
+    "corfu",
+    "kefalonia",
+    "zakynthos",
+    "samothraki",
+})
+UNLOCK_ISLANDS = frozenset({
+    "thassos",
+    "kassandra",
+    "sithonia",
+    "lefkada",
+    "corfu",
+    "kefalonia",
+    "zakynthos",
+    "samothraki",
+})
 UNLOCK_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 

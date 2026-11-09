@@ -19,7 +19,7 @@ from app.database import (
 app = FastAPI(
     title="Grecia Planner SaaS API",
     description="Verificare licență PRO — legacy Thassos (is_pro) și entitlements per ghid.",
-    version="1.3.1",
+    version="1.3.2",
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -55,7 +55,7 @@ def on_startup() -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.1"}
+    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.2"}
 
 
 @app.get("/check-status")
@@ -68,9 +68,10 @@ def check_status(
     """
     Verifică licența și leagă contul de un singur dispozitiv.
     - `code`: licență de deblocare per aplicație (același contract ca emailul plătit)
-    - Codul cere `island` valid (thassos|kassandra|sithonia|lefkada); altfel no_license
-    - Fără `island` (sau necunoscut) pe email: legacy Thassos via users.is_pro
-    - island=kassandra|sithonia|lefkada pe email: entitlement dedicat, ignoră is_pro
+    - Codul cere `island` valid (thassos|kassandra|sithonia|lefkada|corfu|kefalonia|zakynthos|samothraki); altfel no_license
+    - Fără `island`, sau island=thassos: legacy Thassos via users.is_pro
+    - island=kassandra|sithonia|lefkada|corfu|kefalonia|zakynthos|samothraki pe email: entitlement dedicat, ignoră is_pro
+    - Altă insulă necunoscută: no_license, nu deblochează Thassos
     """
     unlock = normalize_unlock_code(code) or normalize_unlock_code(email if "@" not in email else "")
     if unlock:
@@ -79,11 +80,14 @@ def check_status(
             return {"status": "ok", "island": (island or "thassos").strip().lower(), "kind": "unlock_code"}
         return {"status": "error", "reason": reason or "no_license"}
 
-    entitlement_island = normalize_entitlement_island(island)
+    requested = (island or "").strip().lower()
+    entitlement_island = normalize_entitlement_island(requested)
     if entitlement_island:
         allowed, reason = check_island_entitlement(email, entitlement_island, device_id or None)
-    else:
+    elif requested in ("", "thassos"):
         allowed, reason = check_pro_license(email, device_id or None)
+    else:
+        return {"status": "error", "reason": "no_license"}
 
     if allowed:
         return {"status": "ok", "island": entitlement_island or "thassos", "kind": "email"}
@@ -100,13 +104,18 @@ def internal_grant_pro(
     if not secret or x_internal_secret != secret:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    island = normalize_entitlement_island(payload.island_id)
+    requested = (payload.island_id or "").strip().lower()
+    island = normalize_entitlement_island(requested)
     email = str(payload.email).strip().lower()
 
-    # Ghiduri cu entitlement separat (Kassandra, Sithonia) — nu deblochează Thassos is_pro
+    # Ghid dedicat — nu activează is_pro de pe Thassos.
     if island:
         if grant_island_entitlement(email, island, payload.source_order_id):
             return {"ok": True, "email": email, "island": island, "model": "entitlement"}
+        raise HTTPException(status_code=400, detail="Invalid email or island")
+
+    # Insulă trimisă, dar necunoscută: nu o transformăm în licență Thassos.
+    if requested not in ("", "thassos"):
         raise HTTPException(status_code=400, detail="Invalid email or island")
 
     if grant_pro_license(email):
