@@ -64,6 +64,7 @@ def check_status(
     code: str = Query(default="", max_length=24),
     device_id: str = Query(default="", max_length=128),
     island: str = Query(default="", max_length=32),
+    rebind: str = Query(default="", max_length=8),
 ) -> dict:
     """
     Verifică licența și leagă contul de un singur dispozitiv.
@@ -73,9 +74,10 @@ def check_status(
     - island=kassandra|sithonia|lefkada|corfu|kefalonia|zakynthos|samothraki pe email: entitlement dedicat, ignoră is_pro
     - Altă insulă necunoscută: no_license, nu deblochează Thassos
     """
+    move_device = (rebind or "").strip().lower() in {"1", "true", "yes"}
     unlock = normalize_unlock_code(code) or normalize_unlock_code(email if "@" not in email else "")
     if unlock:
-        allowed, reason = check_unlock_code(unlock, island, device_id or None)
+        allowed, reason = check_unlock_code(unlock, island, device_id or None, move_device)
         if allowed:
             return {"status": "ok", "island": (island or "thassos").strip().lower(), "kind": "unlock_code"}
         return {"status": "error", "reason": reason or "no_license"}
@@ -83,9 +85,9 @@ def check_status(
     requested = (island or "").strip().lower()
     entitlement_island = normalize_entitlement_island(requested)
     if entitlement_island:
-        allowed, reason = check_island_entitlement(email, entitlement_island, device_id or None)
+        allowed, reason = check_island_entitlement(email, entitlement_island, device_id or None, move_device)
     elif requested in ("", "thassos"):
-        allowed, reason = check_pro_license(email, device_id or None)
+        allowed, reason = check_pro_license(email, device_id or None, move_device)
     else:
         return {"status": "error", "reason": "no_license"}
 

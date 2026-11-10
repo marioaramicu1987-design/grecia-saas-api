@@ -304,7 +304,13 @@ def user_has_active_pro(email: str) -> bool:
         return row is True
 
 
-def check_pro_license(email: str, device_id: str | None) -> tuple[bool, str | None]:
+def _rebind(session, row, device: str) -> tuple[bool, str | None]:
+    row.bound_device_id = device
+    session.commit()
+    return True, None
+
+
+def check_pro_license(email: str, device_id: str | None, rebind: bool = False) -> tuple[bool, str | None]:
     """
     Verifică licența PRO legacy (Thassos) și leagă contul de primul dispozitiv folosit.
     Returnează (allowed, reason) — reason: no_license | device_required | device_mismatch.
@@ -334,6 +340,9 @@ def check_pro_license(email: str, device_id: str | None) -> tuple[bool, str | No
         if bound == device:
             return True, None
 
+        if rebind:
+            return _rebind(session, user, device)
+
         return False, "device_mismatch"
 
 
@@ -341,6 +350,7 @@ def check_island_entitlement(
     email: str,
     island_id: str,
     device_id: str | None,
+    rebind: bool = False,
 ) -> tuple[bool, str | None]:
     """
     Verifică entitlement per ghid (ex. Kassandra). Ignoră users.is_pro.
@@ -375,6 +385,9 @@ def check_island_entitlement(
 
         if bound == device:
             return True, None
+
+        if rebind:
+            return _rebind(session, entitlement, device)
 
         return False, "device_mismatch"
 
@@ -459,6 +472,7 @@ def check_unlock_code(
     code: str,
     island_id: str | None,
     device_id: str | None,
+    rebind: bool = False,
 ) -> tuple[bool, str | None]:
     """Licență de deblocare: o aplicație, un dispozitiv — același contract ca emailul plătit."""
     normalized = normalize_unlock_code(code)
@@ -486,6 +500,9 @@ def check_unlock_code(
 
         if bound == device:
             return True, None
+
+        if rebind:
+            return _rebind(session, row, device)
 
         return False, "device_mismatch"
 
