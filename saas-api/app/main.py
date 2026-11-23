@@ -2,11 +2,14 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CreateUnlockCodeRequest, GrantProRequest, RevokeUnlockCodeRequest, settings
+from sqlalchemy import text
+
 from app.database import (
     check_island_entitlement,
     check_pro_license,
     check_unlock_code,
     create_unlock_code,
+    engine,
     grant_island_entitlement,
     grant_pro_license,
     init_db,
@@ -19,7 +22,7 @@ from app.database import (
 app = FastAPI(
     title="Grecia Planner SaaS API",
     description="Verificare licență PRO — legacy Thassos (is_pro) și entitlements per ghid.",
-    version="1.3.2",
+    version="1.3.3",
 )
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -55,7 +58,7 @@ def on_startup() -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.2"}
+    return {"ok": True, "service": "grecia-planner-saas-api", "version": "1.3.3"}
 
 
 @app.get("/check-status")
@@ -110,19 +113,44 @@ def internal_grant_pro(
     island = normalize_entitlement_island(requested)
     email = str(payload.email).strip().lower()
 
-    # Ghid dedicat — nu activează is_pro de pe Thassos.
-    if island:
-        if grant_island_entitlement(email, island, payload.source_order_id):
-            return {"ok": True, "email": email, "island": island, "model": "entitlement"}
-        raise HTTPException(status_code=400, detail="Invalid email or island")
+    try:
+        # Ghid dedicat — nu activează is_pro de pe Thassos.
+        if island:
+            if grant_island_entitlement(email, island, payload.source_order_id):
+                return {"ok": True, "email": email, "island": island, "model": "entitlement"}
+            raise HTTPException(status_code=400, detail="Invalid email or island")
 
-    # Insulă trimisă, dar necunoscută: nu o transformăm în licență Thassos.
-    if requested not in ("", "thassos"):
-        raise HTTPException(status_code=400, detail="Invalid email or island")
+        # Insulă trimisă, dar necunoscută: nu o transformăm în licență Thassos.
+        if requested not in ("", "thassos"):
+            raise HTTPException(status_code=400, detail="Invalid email or island")
 
-    if grant_pro_license(email):
-        return {"ok": True, "email": email, "island": "thassos", "model": "legacy_is_pro"}
-    raise HTTPException(status_code=400, detail="Invalid email")
+        if grant_pro_license(email):
+            return {"ok": True, "email": email, "island": "thassos", "model": "legacy_is_pro"}
+        raise HTTPException(status_code=400, detail="Invalid email")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        print(f"[saas-api] grant-pro failed: {message}", flush=True)
+        raise HTTPException(status_code=500, detail=message[:500]) from exc
+
+
+@app.get("/internal/db-probe")
+def internal_db_probe(x_internal_secret: str = Header(default="")) -> dict:
+    """Arată dacă baza de licențe răspunde și ce coloane are users. Nu întoarce rânduri."""
+    _require_internal(x_internal_secret)
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = 'users' "
+                    "ORDER BY ordinal_position"
+                )
+            ).fetchall()
+        return {"ok": True, "users_columns": [row[0] for row in rows]}
+    except Exception as exc:
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"[:500]}
 
 
 def _require_internal(x_internal_secret: str) -> None:

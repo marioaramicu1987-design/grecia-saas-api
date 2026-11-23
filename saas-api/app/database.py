@@ -99,11 +99,13 @@ def _normalize_database_url(url: str) -> str:
 def _engine_kwargs(url: str) -> dict:
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}
-    # Neon / managed Postgres: reconnect după sleep
+    # Neon pooler (PgBouncer) nu ține prepared statements între cereri.
+    # Fără asta, orice SELECT/INSERT pe licențe cade imediat cu 500.
     return {
         "pool_recycle": 280,
         "pool_size": 2,
         "max_overflow": 2,
+        "connect_args": {"prepare_threshold": None},
     }
 
 
